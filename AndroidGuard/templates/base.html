@@ -14,6 +14,7 @@
         <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
 
         <script src="{{ url_for('static', filename='js/vendor/modernizr-2.8.3-respond-1.4.2.min.js') }}"></script>
+        <script type=text/javascript>$SCRIPT_ROOT = {{ request.script_root|tojson|safe }};</script>
     </head>
     <body>
         <!--[if lt IE 8]>
@@ -26,7 +27,7 @@
                 <nav>
                     <ul>
                         {% if current_user.is_authenticated %}
-                        <li><a href="{{ url_for('.devices') }}">My Devices</a></li>
+                        <li><a href="{{ url_for('.my_devices') }}">Devices</a></li>
                         <li><a href="{{ url_for('.logout') }}">Sign Out</a></li>
                         {% else %}
                         <li><a href="{{ url_for('.signup') }}">Sign Up</a></li>

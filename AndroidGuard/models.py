@@ -22,7 +22,7 @@ class Device(db.Model):
 
     @property
     def last_location(self):
-        return Location.query().filter_by(device_id=self.id).order_by(desc('location.id')).first()
+        return Location.query.filter_by(device_id=self.id).order_by(desc('location.id')).first()
 
 
 class User(db.Model, UserMixin):

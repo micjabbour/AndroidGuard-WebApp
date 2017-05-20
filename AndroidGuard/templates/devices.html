@@ -1,1 +1,66 @@
 {% extends "base.html" %}
+
+{% block title %}
+AndroidGuard -- Track Devices
+{% endblock %}
+
+{% block content %}
+<h1 style="clear:both">Track Devices</h1>
+{% if devices.count() >0 %}
+<span>
+    <select id="devices_select">
+        {% for device in devices %}
+        <option id="{{ device.id }}">{{ device.name }}</option>
+        {% endfor %}
+    </select>
+</span>
+<span class="devinfo" id="devinfo">
+
+</span>
+<br/>
+{{ google_map.html }}
+{% else %}
+<p>No devices added yet. Install the android app on your device to get started.</p>
+{% endif %}
+{% endblock %}
+
+{% block sidebar %}
+{% endblock %}
+
+{% block scripts %}
+{% if devices.count() >0 %}
+{{ google_map.js }}
+<script type="text/javascript">
+$DEVICES_LOCATIONS = "";
+$(document).ready(function() {
+    var $selectObject = $("#devices_select");
+    $selectObject.change(function() {
+        LoadLocationForDevice($selectObject);
+        google_map.setCenter(google_map_markers[0].position);
+    });
+    (function worker() {
+        $.getJSON($SCRIPT_ROOT + '{{ url_for('.get_devices_locations') }}', {}, function(data) {
+            $DEVICES_LOCATIONS= data;
+            LoadLocationForDevice($selectObject);
+            setTimeout(worker, 3000);
+        });
+    })();
+});
+
+function LoadLocationForDevice($selectObject) {
+    if($DEVICES_LOCATIONS == "") return;
+    var id = $selectObject.children(":selected").attr("id");
+    var selected_device_list = $.grep($DEVICES_LOCATIONS.devices, function(e){ return e.id == id; });
+    if(selected_device_list.length <= 0) return;
+    var selected_device = selected_device_list[0];
+    $('#devinfo').text('Last Updated: '+moment(selected_device.last_location.timestamp).fromNow());
+    google_map_markers.map(function(mk){
+        var latlng = new google.maps.LatLng(parseFloat(selected_device.last_location.latitude),
+                                            parseFloat(selected_device.last_location.longitude));
+        mk.setPosition(latlng);
+    });
+}
+
+</script>
+{% endif %}
+{% endblock %}

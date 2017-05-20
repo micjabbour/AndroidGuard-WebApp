@@ -244,7 +244,9 @@ div.info {
     color: #666666;
 }
 
-span.editlinks {
+span.devinfo {
+    font-size: .95em;
+    color: #666666;
     float: right;
 }
 

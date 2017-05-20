@@ -1,10 +1,11 @@
 from . import main
-from flask import render_template, flash, url_for, request
+from flask import render_template, flash, url_for, request, jsonify
 from .. import login_manager, db
 from ..models import User, Device, Location
 from .forms import LoginForm, SignupForm
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.utils import redirect
+from flask_googlemaps import Map, icons
 from werkzeug.exceptions import abort
 
 
@@ -29,8 +30,8 @@ def login():
         u = User.get_by_username(username)
         if u is not None and u.check_password(password):
             login_user(u, remember_me)
-            flash("logged in as '{}'".format(username))
-            return redirect(url_for('.devices'))
+            #flash("logged in as '{}'".format(username))
+            return redirect(url_for('.my_devices'))
         flash('Incorrect username or password.')
     return render_template('login.html', form=form)
 
@@ -61,8 +62,43 @@ def logout():
 
 @main.route('/devices')
 @login_required
-def devices():
-    return redirect(url_for('.index'))
+def my_devices():
+    devices = current_user.devices
+    first_dev_lat = 0
+    first_dev_lng = 0
+    markers = []
+    if devices.count()>0:
+        first_dev_lat = str(current_user.devices[0].last_location.latitude)
+        first_dev_lng = str(current_user.devices[0].last_location.longitude)
+        markers = [(first_dev_lat, first_dev_lng)]
+    google_map = Map(
+        identifier="google_map",  # for DOM element
+        varname="google_map",  # for JS object name
+        style="height:500px;width:100%;margin:0;",
+        streetview_control=False,
+        lat=first_dev_lat,
+        lng=first_dev_lng,
+        markers=markers
+    )
+    return render_template('devices.html', devices=devices, google_map=google_map)
+
+
+@main.route('/get_devs_locs')
+def get_devices_locations():
+    user_devices = current_user.devices
+    result= dict()
+    result['devices'] = []
+    for device in user_devices:
+        loc= device.last_location
+        result['devices'].append(dict(
+            id= device.id,
+            name= device.name,
+            last_location= dict(
+                latitude= str(loc.latitude),
+                longitude= str(loc.longitude),
+                timestamp= loc.timestamp.isoformat()+'Z' #HACK
+            )))
+    return jsonify(result)
 
 
 @main.app_errorhandler(404)
