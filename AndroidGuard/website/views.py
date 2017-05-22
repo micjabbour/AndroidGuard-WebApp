@@ -96,7 +96,7 @@ def get_devices_locations():
             last_location= dict(
                 latitude= str(loc.latitude),
                 longitude= str(loc.longitude),
-                timestamp= loc.timestamp.isoformat()+'Z' #HACK
+                timestamp= loc.timestamp.isoformat()+'Z'  # #HACK
             )))
     return jsonify(result)
 
