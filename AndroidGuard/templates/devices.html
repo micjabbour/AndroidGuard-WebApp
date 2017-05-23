@@ -53,8 +53,14 @@ function LoadLocationForDevice($selectObject) {
     var selected_device_list = $.grep($DEVICES_LOCATIONS.devices, function(e){ return e.id == id; });
     if(selected_device_list.length <= 0) return;
     var selected_device = selected_device_list[0];
+    if(!selected_device.hasOwnProperty('last_location')) {
+        $('#devinfo').text('No locations available for this device yet');
+        google_map_markers.map(function(mk){mk.setMap(null)});
+        return;
+    }
     $('#devinfo').text('Last Updated: '+moment(selected_device.last_location.timestamp).fromNow());
     google_map_markers.map(function(mk){
+        if(mk.getMap() == null) mk.setMap(google_map);
         var latlng = new google.maps.LatLng(parseFloat(selected_device.last_location.latitude),
                                             parseFloat(selected_device.last_location.longitude));
         mk.setPosition(latlng);

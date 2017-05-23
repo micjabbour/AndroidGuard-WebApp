@@ -86,18 +86,9 @@ def my_devices():
 @main.route('/get_devs_locs')
 def get_devices_locations():
     user_devices = current_user.devices
-    result= dict()
-    result['devices'] = []
-    for device in user_devices:
-        loc= device.last_location
-        result['devices'].append(dict(
-            id= device.id,
-            name= device.name,
-            last_location= dict(
-                latitude= str(loc.latitude),
-                longitude= str(loc.longitude),
-                timestamp= loc.timestamp.isoformat()+'Z'  # #HACK
-            )))
+    result = dict(
+        devices=[device.get_device_dict() for device in user_devices]
+    )
     return jsonify(result)
 
 

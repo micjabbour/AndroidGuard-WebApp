@@ -12,6 +12,11 @@ class Location(db.Model):
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     device_id = db.Column(db.Integer, db.ForeignKey('device.id'), nullable=False)
 
+    def serialize(self):
+        return {'latitude': str(self.latitude),
+                'longitude': str(self.longitude),
+                'timestamp': self.timestamp.isoformat()+'Z'  # #HACK
+                }
 
 class Device(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -23,6 +28,12 @@ class Device(db.Model):
     @property
     def last_location(self):
         return Location.query.filter_by(device_id=self.id).order_by(desc('location.id')).first()
+
+    def get_device_dict(self):
+        device_dict = {'id': self.id, 'name': self.name}
+        if self.last_location:
+            device_dict['last_location'] = self.last_location.serialize()
+        return device_dict
 
 
 class User(db.Model, UserMixin):
