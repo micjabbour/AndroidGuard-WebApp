@@ -1,8 +1,10 @@
 from . import db
+from .config import AppConfig
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
 from sqlalchemy import desc
+from itsdangerous import Serializer, BadSignature
 
 
 class Location(db.Model):
@@ -17,6 +19,7 @@ class Location(db.Model):
                 'longitude': str(self.longitude),
                 'timestamp': self.timestamp.isoformat()+'Z'  # #HACK
                 }
+
 
 class Device(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -34,6 +37,28 @@ class Device(db.Model):
         if self.last_location:
             device_dict['last_location'] = self.last_location.serialize()
         return device_dict
+
+    def generate_auth_token(self):
+        s = Serializer(AppConfig.SECRET_KEY)
+        return s.dumps(self.id)
+
+    @staticmethod
+    def verify_auth_token(token):
+        s = Serializer(AppConfig.SECRET_KEY)
+        try:
+            id = s.loads(token)
+        except BadSignature:
+            return None
+        device = Device.query.get(id)
+        return device
+
+    @staticmethod
+    def get_by_devicename(user, name):
+        device_list = user.devices
+        for device in device_list:
+            if device.name == name:
+                return device
+        return None
 
 
 class User(db.Model, UserMixin):
@@ -56,6 +81,13 @@ class User(db.Model, UserMixin):
     @staticmethod
     def get_by_username(username):
         return User.query.filter_by(username=username).first()
+
+    @staticmethod
+    def verify_credentials(username, password):
+        user = User.get_by_username(username)
+        if user is not None and user.check_password(password):
+            return user
+        return None
 
     def __repr__(self):
         return "<User '{}'>".format(self.username)

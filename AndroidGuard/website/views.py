@@ -1,4 +1,4 @@
-from . import main
+from . import website
 from flask import render_template, flash, url_for, request, jsonify
 from .. import login_manager, db
 from ..models import User, Device, Location
@@ -14,13 +14,13 @@ def load_user(userid):
     return User.query.get(userid)
 
 
-@main.route('/')
-@main.route('/index')
+@website.route('/')
+@website.route('/index')
 def index():
     return render_template('index.html')
 
 
-@main.route('/login', methods=["GET", "POST"])
+@website.route('/login', methods=["GET", "POST"])
 def login():
     form = LoginForm()
     if form.validate_on_submit():
@@ -36,7 +36,7 @@ def login():
     return render_template('login.html', form=form)
 
 
-@main.route('/signup', methods=["GET", "POST"])
+@website.route('/signup', methods=["GET", "POST"])
 def signup():
     form = SignupForm()
     if form.validate_on_submit():
@@ -51,7 +51,7 @@ def signup():
     return render_template('signup.html', form=form)
 
 
-@main.route('/logout')
+@website.route('/logout')
 @login_required
 def logout():
     username = current_user.username
@@ -60,17 +60,16 @@ def logout():
     return redirect(url_for('.index'))
 
 
-@main.route('/devices')
+@website.route('/devices')
 @login_required
 def my_devices():
     devices = current_user.devices
-    first_dev_lat = 0
-    first_dev_lng = 0
-    markers = []
-    if devices.count()>0:
-        first_dev_lat = str(current_user.devices[0].last_location.latitude)
-        first_dev_lng = str(current_user.devices[0].last_location.longitude)
-        markers = [(first_dev_lat, first_dev_lng)]
+    first_dev_lat = str(0)
+    first_dev_lng = str(0)
+    if devices.count()>0 and devices[0].last_location is not None:
+        first_dev_lat = str(devices[0].last_location.latitude)
+        first_dev_lng = str(devices[0].last_location.longitude)
+    markers = [(first_dev_lat, first_dev_lng)]
     google_map = Map(
         identifier="google_map",  # for DOM element
         varname="google_map",  # for JS object name
@@ -83,7 +82,7 @@ def my_devices():
     return render_template('devices.html', devices=devices, google_map=google_map)
 
 
-@main.route('/get_devs_locs')
+@website.route('/get_devs_locs')
 def get_devices_locations():
     user_devices = current_user.devices
     result = dict(
@@ -92,6 +91,6 @@ def get_devices_locations():
     return jsonify(result)
 
 
-@main.app_errorhandler(404)
+@website.app_errorhandler(404)
 def page_not_found(e):
     return render_template('404.html'), 404

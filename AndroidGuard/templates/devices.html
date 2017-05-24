@@ -60,10 +60,13 @@ function LoadLocationForDevice($selectObject) {
     }
     $('#devinfo').text('Last Updated: '+moment(selected_device.last_location.timestamp).fromNow());
     google_map_markers.map(function(mk){
-        if(mk.getMap() == null) mk.setMap(google_map);
         var latlng = new google.maps.LatLng(parseFloat(selected_device.last_location.latitude),
                                             parseFloat(selected_device.last_location.longitude));
         mk.setPosition(latlng);
+        if(mk.getMap() == null) {
+            mk.setMap(google_map);
+            google_map.setCenter(google_map_markers[0].position);
+        }
     });
 }
 
