@@ -17,7 +17,7 @@ class Location(db.Model):
     def serialize(self):
         return {'latitude': str(self.latitude),
                 'longitude': str(self.longitude),
-                'timestamp': self.timestamp.isoformat()+'Z'  # #HACK
+                'timestamp': self.timestamp.isoformat()+'Z'  # HACK
                 }
 
 

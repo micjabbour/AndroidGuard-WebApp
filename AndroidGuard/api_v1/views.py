@@ -1,50 +1,49 @@
-from flask import Flask, request, jsonify, g, abort
-from . import api_v1, auth
+from flask import request, jsonify, g, abort
+from . import api_v1, creds_auth, token_auth
 from ..models import User, Device, Location
 from .. import db
 
 # inspiration from https://blog.miguelgrinberg.com/post/restful-authentication-with-flask
 
 
-# assumes that the username is a token first (when supplied an empty password)
-# if it fails to authenticate, it tries authentication using a username/password
-# when it authenticates using username/password pair:
-#  g.auth_is_token is set to False
-#  g.device is set to None
-#  g.user is set to the authenticated user
-# when it authenticates using a device token:
-#  g.auth_is_token is set to True
-#  g.device is set to the token's device
-#  g.user is set to the device's user
-@auth.verify_password
-def verify_password(username_or_device_token, password):
-    # first, try to authenticate by device token
-    device = None
-    if password == "":
-        device = Device.verify_auth_token(username_or_device_token)
-    if not device:
-        # if it is not a token, try to authenticate by username
-        user = User.verify_credentials(username_or_device_token, password)
-        if not user:
-            return False
-        g.auth_is_token = False
-        g.user = user
-        g.device = None
-        return True
-    g.auth_is_token = True
-    g.device = device
-    g.user = device.user
+@creds_auth.verify_password
+def creds_verify(username, password):
+    user = User.verify_credentials(username, password)
+    if not user:
+        return False
+    g.user = user
     return True
 
 
+@token_auth.verify_password
+def token_verify(token, password):
+    # password should be empty
+    if password != "":
+        return False
+    # token should be a valid device token
+    device = Device.verify_auth_token(token)
+    if not device:
+        return False
+    g.device = device
+    return True
+
+
+@token_auth.error_handler
+def token_error_handler():
+    abort(401)
+
+
+@creds_auth.error_handler
+def creds_error_handler():
+    abort(401)
+
+
+# register new device and return a token for it
+# if the device name already exists for this user,
+# return a token for the already existing device
 @api_v1.route('/devices', methods=["POST"])
-@auth.login_required
+@creds_auth.login_required
 def register_device():
-    # if user is being authenticated by device token
-    if g.auth_is_token:
-        # not allowed to register a new device
-        abort(401)
-    device_name = None
     try:
         device_name = request.get_json()['device_name']
     except TypeError:
@@ -52,34 +51,41 @@ def register_device():
     device = Device.get_by_devicename(g.user, device_name)
     # if device does not exist, register it
     # else return the token for the already existing device
+    already_exists = True
     if device is None:
         device = Device(name=device_name, user=g.user)
         db.session.add(device)
         db.session.commit()
-    return jsonify(token=device.generate_auth_token())
+        already_exists = False
+    return jsonify(token=device.generate_auth_token(),
+                   already_exists=already_exists)
 
 
+# save new device's location in database
 @api_v1.route('/locations', methods=["POST"])
-@auth.login_required
+@token_auth.login_required
 def update_location():
-    # if not authenticated using a device token
-    if not g.auth_is_token:
-        abort(401)
     # insert new location into the database
-    loc = Location(latitude=request.json.get('latitude'),
-                   longitude=request.json.get('longitude'),
-                   device=g.device)
+    try:
+        loc = Location(latitude=request.get_json()['latitude'],
+                       longitude=request.get_json()['longitude'],
+                       device=g.device)
+    except TypeError:
+        abort(400)
     db.session.add(loc)
     db.session.commit()
     return '', 204
 
 
 @api_v1.route('/test_token', methods=["GET"])
-@auth.login_required
+@token_auth.login_required
 def test_token():
-    # if not authenticated using a device token
-    if not g.auth_is_token:
-        abort(401)
+    return '', 204
+
+
+@api_v1.route('/test_creds', methods=["GET"])
+@creds_auth.login_required
+def test_creds():
     return '', 204
 
 
@@ -93,14 +99,9 @@ def forbidden(e):
     return jsonify(error='forbidden'), 403
 
 
-@auth.error_handler
-def auth_not_authorized():
-    return jsonify(error='authentication error'), 401
-
-
 @api_v1.errorhandler(401)
 def not_authorized(e):
-    return jsonify(error='not authorized'), 400
+    return jsonify(error='authentication error'), 400
 
 
 @api_v1.errorhandler(404)
