@@ -41,19 +41,31 @@ def creds_error_handler():
 # register new device and return a token for it
 # if the device name already exists for this user,
 # return a token for the already existing device
+#
+# if the request contains an fcm_token, it will be updated
+# in the database
 @api_v1.route('/devices', methods=["POST"])
 @creds_auth.login_required
 def register_device():
+    json_data = request.get_json()
     try:
-        device_name = request.get_json()['device_name']
-    except TypeError:
+        device_name = json_data['device_name']
+    except (KeyError, TypeError) as e:
         abort(400)
+    fcm_token = None
+    if 'fcm_token' in json_data:
+        fcm_token = json_data['fcm_token']
     device = Device.get_by_devicename(g.user, device_name)
+    if fcm_token is not None: # update fcm_token from the request
+        device.fcm_token = fcm_token
+        db.session.commit()
     # if device does not exist, register it
     # else return the token for the already existing device
     already_exists = True
     if device is None:
         device = Device(name=device_name, user=g.user)
+        if fcm_token is not None:
+            device.fcm_token = fcm_token
         db.session.add(device)
         db.session.commit()
         already_exists = False
@@ -66,13 +78,27 @@ def register_device():
 @token_auth.login_required
 def update_location():
     # insert new location into the database
+    json_data = request.get_json()
     try:
-        loc = Location(latitude=request.get_json()['latitude'],
-                       longitude=request.get_json()['longitude'],
+        loc = Location(latitude=json_data['latitude'],
+                       longitude=json_data['longitude'],
                        device=g.device)
-    except TypeError:
+    except (KeyError, TypeError) as e:
         abort(400)
     db.session.add(loc)
+    db.session.commit()
+    return '', 204
+
+
+# update fcm token for device
+@api_v1.route('/fcm_token', methods=["POST"])
+@token_auth.login_required
+def update_fcm_token():
+    try:
+        fcm_token = request.get_json()['fcm_token']
+    except (TypeError, KeyError) as e:
+        abort(400)
+    g.device.fcm_token = fcm_token
     db.session.commit()
     return '', 204
 
@@ -101,7 +127,7 @@ def forbidden(e):
 
 @api_v1.errorhandler(401)
 def not_authorized(e):
-    return jsonify(error='authentication error'), 400
+    return jsonify(error='authentication error'), 401
 
 
 @api_v1.errorhandler(404)

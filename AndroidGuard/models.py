@@ -24,6 +24,7 @@ class Location(db.Model):
 class Device(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.Text)
+    fcm_token = db.Column(db.Text)
     locations = db.relationship('Location', backref='device', lazy='select')
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     db.UniqueConstraint('name', 'user_id')
