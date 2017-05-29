@@ -42,30 +42,27 @@ def creds_error_handler():
 # if the device name already exists for this user,
 # return a token for the already existing device
 #
-# if the request contains an fcm_token, it will be updated
-# in the database
+# if the request contains a non-empty fcm_token,
+# it will be updated in the database
 @api_v1.route('/devices', methods=["POST"])
 @creds_auth.login_required
 def register_device():
     json_data = request.get_json()
     try:
         device_name = json_data['device_name']
+        fcm_token = json_data['fcm_token']
     except (KeyError, TypeError) as e:
         abort(400)
-    fcm_token = None
-    if 'fcm_token' in json_data:
-        fcm_token = json_data['fcm_token']
     device = Device.get_by_devicename(g.user, device_name)
-    if fcm_token is not None: # update fcm_token from the request
-        device.fcm_token = fcm_token
-        db.session.commit()
-    # if device does not exist, register it
-    # else return the token for the already existing device
-    already_exists = True
-    if device is None:
-        device = Device(name=device_name, user=g.user)
-        if fcm_token is not None:
+    # if device exists, update fcm_token and return token for the device
+    # else add the device and return a token for it
+    if device is not None:
+        if fcm_token != "":  # update fcm_token from the request
             device.fcm_token = fcm_token
+            db.session.commit()
+        already_exists = True
+    else:
+        device = Device(name=device_name, user=g.user, fcm_token=fcm_token)
         db.session.add(device)
         db.session.commit()
         already_exists = False
