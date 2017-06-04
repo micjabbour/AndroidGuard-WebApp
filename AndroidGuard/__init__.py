@@ -1,4 +1,5 @@
 from flask import Flask
+from flask_pyfcm import FCM
 from flask_login import LoginManager
 from flask_moment import Moment
 from flask_sqlalchemy import SQLAlchemy
@@ -8,6 +9,7 @@ from .config import AppConfig
 # db object
 db = SQLAlchemy()
 gm = GoogleMaps()
+fcm = FCM()
 
 # configure login manager
 login_manager = LoginManager()
@@ -25,6 +27,7 @@ def create_app():
     login_manager.init_app(app)
     moment.init_app(app)
     gm.init_app(app)
+    fcm.init_app(app)
 
     from .website import website as website_blueprint
     app.register_blueprint(website_blueprint, url_prefix='')

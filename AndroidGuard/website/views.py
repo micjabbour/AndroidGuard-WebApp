@@ -1,6 +1,6 @@
 from . import website
 from flask import render_template, flash, url_for, request, jsonify
-from .. import login_manager, db
+from .. import login_manager, db, fcm
 from ..models import User, Device, Location
 from .forms import LoginForm, SignupForm
 from flask_login import login_user, logout_user, login_required, current_user
@@ -82,13 +82,34 @@ def my_devices():
     return render_template('devices.html', devices=devices, google_map=google_map)
 
 
+# next view functions are used from devices.html jQuery requests
 @website.route('/get_devs_locs')
+@login_required
 def get_devices_locations():
     user_devices = current_user.devices
     result = dict(
         devices=[device.get_device_dict() for device in user_devices]
     )
     return jsonify(result)
+
+
+@website.route('/command_getloc', methods=["POST"])
+@login_required
+def command_update_device_loc():
+    try:
+        device_id = request.get_json()['device_id']
+    except (KeyError, TypeError) as e:
+        return '', 400
+    device = Device.query.get(device_id)
+    # check if device belongs to the current user
+    if device is None or device.user_id != current_user.id:
+        return '', 401
+    # send fcm message
+    fcm.notify_single_device(device.fcm_token, low_priority=False,
+                             data_message=dict(command='getloc'))
+    return '', 204
+
+
 
 
 @website.app_errorhandler(404)
