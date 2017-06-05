@@ -350,12 +350,12 @@ div.select2-container {
 
     .main article {
         float: left;
-        width: 57%;
+        width: 73%;
     }
 
     .main aside {
         float: right;
-        width: 28%;
+        width: 15%;
     }
 }
 
@@ -518,5 +518,5 @@ div.select2-container {
 
 /* Add a background color on hover */
 .btn-group button:hover {
-    background-color: #2A5F7E;
+    background-color: #0D3E5B;
 }
