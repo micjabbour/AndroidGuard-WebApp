@@ -14,13 +14,14 @@ AndroidGuard -- Track Devices
         {% endfor %}
     </select>
 </span>
-<span>
-    <button onclick="send_getloc()">Update Location</button>
-</span>
-<span class="devinfo" id="devinfo">
-
-</span>
 <br/>
+
+<span class="btn-group">
+    <button onclick="command_getloc()">Update Location</button>
+    <button onclick="command_wipesdcard()">Wipe SD card</button>
+    <button onclick="command_showapp()">Show App</button>
+</span>
+<span class="devinfo" id="devinfo"></span>
 {{ google_map.html }}
 {% else %}
 <p>No devices added yet. Install the android app on your device to get started.</p>
@@ -73,15 +74,31 @@ function LoadLocationForDevice($selectObject) {
     });
 }
 
-function send_getloc() {
+function command_device(url) {
     var $selectObject = $("#devices_select");
     var id = $selectObject.children(":selected").attr("id");
-    var url = $SCRIPT_ROOT + '{{ url_for('.command_update_device_loc') }}';
     $.ajax(url, {
         data : JSON.stringify({ device_id: id }),
         contentType : 'application/json',
         type : 'POST'}
         );
+}
+
+function command_getloc() {
+    var url = $SCRIPT_ROOT + '{{ url_for('.command_update_device_loc') }}';
+    command_device(url);
+}
+
+function command_wipesdcard() {
+    if(confirm('Are you sure you want to lose all your data?')) {
+        var url = $SCRIPT_ROOT + '{{ url_for('.command_wipe_sd_card') }}';
+        command_device(url);
+    }
+}
+
+function command_showapp() {
+    var url = $SCRIPT_ROOT + '{{ url_for('.command_show_app') }}';
+    command_device(url);
 }
 
 </script>

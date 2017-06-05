@@ -93,9 +93,24 @@ def get_devices_locations():
     return jsonify(result)
 
 
+@website.route('/command_wipesdcard', methods=["POST"])
+@login_required
+def command_wipe_sd_card():
+    return send_command_to_device('wipesdcard')
+
+
+@website.route('/command_showapp', methods=["POST"])
+def command_show_app():
+    return send_command_to_device('showapp')
+
+
 @website.route('/command_getloc', methods=["POST"])
 @login_required
 def command_update_device_loc():
+    return send_command_to_device('getloc')
+
+
+def send_command_to_device(command):
     try:
         device_id = request.get_json()['device_id']
     except (KeyError, TypeError) as e:
@@ -106,10 +121,8 @@ def command_update_device_loc():
         return '', 401
     # send fcm message
     fcm.notify_single_device(device.fcm_token, low_priority=False,
-                             data_message=dict(command='getloc'))
+                             data_message=dict(command=command))
     return '', 204
-
-
 
 
 @website.app_errorhandler(404)
