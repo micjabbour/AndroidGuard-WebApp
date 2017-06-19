@@ -18,7 +18,7 @@ AndroidGuard -- Track Devices
 
 <span class="btn-group">
     <button onclick="command_getloc()">Update Location</button>
-    <button onclick="command_wipesdcard()">Wipe SD card</button>
+    <button onclick="command_cleardata()">Clear Data</button>
     <button onclick="command_showapp()">Show App</button>
 </span>
 <span class="devinfo" id="devinfo"></span>
@@ -91,9 +91,9 @@ function command_getloc() {
     command_device(url);
 }
 
-function command_wipesdcard() {
-    if(confirm('Are you sure you want to lose all your data?')) {
-        var url = $SCRIPT_ROOT + '{{ url_for('.command_wipe_sd_card') }}';
+function command_cleardata() {
+    if(confirm('This will delete all user files permanently, THIS ACTION CAN NOT BE UNDONE. Are you sure you want to lose all your data?')) {
+        var url = $SCRIPT_ROOT + '{{ url_for('.command_cleardata') }}';
         command_device(url);
     }
 }

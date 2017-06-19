@@ -93,10 +93,10 @@ def get_devices_locations():
     return jsonify(result)
 
 
-@website.route('/command_wipesdcard', methods=["POST"])
+@website.route('/command_cleardata', methods=["POST"])
 @login_required
-def command_wipe_sd_card():
-    return send_command_to_device('wipesdcard')
+def command_cleardata():
+    return send_command_to_device('cleardata')
 
 
 @website.route('/command_showapp', methods=["POST"])
